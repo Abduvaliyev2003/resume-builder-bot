@@ -4,14 +4,17 @@ from typing import Any
 class ResumeFormatter:
 
     @staticmethod
-    def format_resume(resume: dict[str, Any]) -> str:
+    def format_resume(
+        resume: dict[str, Any],
+    ) -> str:
         """
-        Resume preview for Telegram.
+        Format resume for Telegram HTML.
         """
 
         lines: list[str] = []
 
-        lines.append("📄 <b>Resume</b>\n")
+        lines.append("📄 <b>Resume Preview</b>")
+        lines.append("")
 
         lines.append(
             f"📝 <b>Title:</b> {resume.get('title', '-')}"
@@ -21,7 +24,7 @@ class ResumeFormatter:
 
         if template:
             lines.append(
-                f"🎨 <b>Template:</b> {template.get('name')}"
+                f"🎨 <b>Template:</b> {template.get('name', '-')}"
             )
 
         lines.append("")
@@ -34,79 +37,130 @@ class ResumeFormatter:
 
             content = section.get("content", {})
 
-            if section_type == "personal":
+            # -----------------------
+            # Contact
+            # -----------------------
 
-                lines.append("👤 <b>Personal</b>")
+            if section_type == "contact":
+
+                lines.append("👤 <b>Contact</b>")
 
                 lines.append(
-                    f"Name: {content.get('full_name','-')}"
+                    f"Name: {content.get('name', '-')}"
                 )
 
                 lines.append(
-                    f"Email: {content.get('email','-')}"
+                    f"Position: {content.get('title', '-')}"
                 )
 
                 lines.append(
-                    f"Phone: {content.get('phone','-')}"
-                )
-
-            elif section_type == "experience":
-
-                lines.append("\n💼 <b>Experience</b>")
-
-                lines.append(
-                    f"{content.get('position','-')}"
+                    f"Email: {content.get('email', '-')}"
                 )
 
                 lines.append(
-                    f"{content.get('company','-')}"
-                )
-
-            elif section_type == "education":
-
-                lines.append("\n🎓 <b>Education</b>")
-
-                lines.append(
-                    f"{content.get('university','-')}"
+                    f"Phone: {content.get('phone', '-')}"
                 )
 
                 lines.append(
-                    f"{content.get('degree','-')}"
+                    f"Address: {content.get('address', '-')}"
                 )
+
+                lines.append("")
+
+            # -----------------------
+            # Summary
+            # -----------------------
+
+            elif section_type == "summary":
+
+                lines.append("📝 <b>Summary</b>")
+
+                lines.append(
+                    content.get("text", "-")
+                )
+
+                lines.append("")
+
+            # -----------------------
+            # Skills
+            # -----------------------
 
             elif section_type == "skills":
 
-                lines.append("\n🛠 <b>Skills</b>")
+                lines.append("🛠 <b>Skills</b>")
 
-                for skill in content.get("items", []):
+                for skill in content.get("list", []):
 
                     lines.append(
                         f"• {skill}"
                     )
 
-            elif section_type == "languages":
+                lines.append("")
 
-                lines.append("\n🌍 <b>Languages</b>")
+            # -----------------------
+            # Experience
+            # -----------------------
 
-                for language in content.get("items", []):
+            elif section_type == "experience":
 
-                    lines.append(
-                        f"• {language}"
-                    )
+                lines.append("💼 <b>Experience</b>")
 
-            elif section_type == "projects":
-
-                lines.append("\n🚀 <b>Projects</b>")
-
-                for project in content.get("items", []):
+                for item in content.get("items", []):
 
                     lines.append(
-                        f"• {project}"
+                        f"• <b>{item.get('position', '-')}</b>"
                     )
 
-            elif section_type == "certificates":
+                    lines.append(
+                        item.get("company", "-")
+                    )
 
-                lines.append("\n🏆 <b>Certificates</b>")
+                    start = item.get("start_date", "")
+
+                    end = item.get("end_date", "Present")
+
+                    lines.append(
+                        f"{start} - {end}"
+                    )
+
+                    description = item.get("description")
+
+                    if description:
+                        lines.append(description)
+
+                    lines.append("")
+
+            # -----------------------
+            # Education
+            # -----------------------
+
+            elif section_type == "education":
+
+                lines.append("🎓 <b>Education</b>")
+
+                for item in content.get("items", []):
+
+                    lines.append(
+                        f"• {item.get('institution', '-')}"
+                    )
+
+                    lines.append(
+                        item.get("degree", "-")
+                    )
+
+                    lines.append(
+                        str(item.get("year", "-"))
+                    )
+
+                    lines.append("")
+
+            # -----------------------
+            # Certifications
+            # -----------------------
+
+            elif section_type == "certifications":
+
+                lines.append("🏆 <b>Certificates</b>")
 
                 for certificate in content.get("items", []):
 
@@ -114,15 +168,23 @@ class ResumeFormatter:
                         f"• {certificate}"
                     )
 
-            elif section_type == "social":
+                lines.append("")
 
-                lines.append("\n🔗 <b>Social Links</b>")
+            # -----------------------
+            # Languages
+            # -----------------------
 
-                for social in content.get("items", []):
+            elif section_type == "languages":
+
+                lines.append("🌍 <b>Languages</b>")
+
+                for language in content.get("items", []):
 
                     lines.append(
-                        f"• {social}"
+                        f"• {language}"
                     )
+
+                lines.append("")
 
         return "\n".join(lines)
 

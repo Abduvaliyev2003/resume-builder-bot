@@ -1,6 +1,7 @@
 from typing import Any
 
 from app.Shared.api_client import api
+from app.Shared.storage import token_storage
 
 
 class ResumeService:
@@ -74,18 +75,19 @@ class ResumeService:
             json=payload,
         )
 
-    async def delete(
-        self,
-        resume_id: str,
-    ) -> dict[str, Any]:
-        """
-        DELETE /api/resumes/{id}
-        """
-
-        return await api.delete(
-            f"/resumes/{resume_id}"
+    async def delete_resume(
+            self,
+            telegram_id: int,
+            resume_id: str,
+    ) -> dict:
+        token = token_storage.get(
+            telegram_id,
         )
 
+        return await self.api.delete(
+            f"/resumes/{resume_id}",
+            token=token,
+        )
     async def duplicate(
         self,
         resume_id: str,
@@ -98,5 +100,25 @@ class ResumeService:
             f"/resumes/{resume_id}/duplicate"
         )
 
+    async def export_resume(
+            self,
+            telegram_id: int,
+            resume_id: str,
+            export_format: str = "pdf",
+    ):
+        token = token_storage.get_token(
+            telegram_id,
+        )
+
+        return await self.api.post(
+
+            f"/resumes/{resume_id}/export",
+
+            token=token,
+
+            json={
+                "format": export_format,
+            },
+        )
 
 resume_service = ResumeService()

@@ -184,3 +184,28 @@ def preview_keyboard() -> InlineKeyboardMarkup:
     builder.adjust(1)
 
     return builder.as_markup()
+
+def export_keyboard(
+    resume_id: str,
+) -> InlineKeyboardMarkup:
+
+    builder = InlineKeyboardBuilder()
+
+    builder.button(
+        text="📄 PDF",
+        callback_data=f"resume:export_pdf:{resume_id}",
+    )
+
+    builder.button(
+        text="📝 DOCX",
+        callback_data=f"resume:export_docx:{resume_id}",
+    )
+
+    builder.button(
+        text="⬅️ Back",
+        callback_data=f"resume:view:{resume_id}",
+    )
+
+    builder.adjust(2, 1)
+
+    return builder.as_markup()
