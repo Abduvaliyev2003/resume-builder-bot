@@ -1,16 +1,37 @@
-# This is a sample Python script.
+import asyncio
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+from aiogram.types import BotCommand
+
+from app.Domains.Auth.router import router as auth_router
+from app.Domains.Resume.router import router as resume_router
+from app.Domains.Template.router import router as template_router
+from app.Shared.api import api
+from app.Shared.bot import bot, dp
+from app.Shared.logger import logger
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+async def main() -> None:
+    """Start the Telegram bot in long-polling mode."""
+
+    dp.include_router(auth_router)
+    dp.include_router(template_router)
+    dp.include_router(resume_router)
+
+    try:
+        await bot.set_my_commands(
+            [
+                BotCommand(command="start", description="Start bot"),
+                BotCommand(command="menu", description="Open main menu"),
+                BotCommand(command="resume", description="Open resume menu"),
+            ]
+        )
+        logger.info("Starting Resume Builder Telegram Bot")
+        await dp.start_polling(bot)
+    finally:
+        await api.close()
+        await bot.session.close()
+        logger.info("Resume Builder Telegram Bot stopped")
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+if __name__ == "__main__":
+    asyncio.run(main())

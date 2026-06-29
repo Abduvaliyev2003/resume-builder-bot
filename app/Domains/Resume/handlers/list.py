@@ -2,7 +2,7 @@ from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
 from app.Domains.Resume.keyboards import (
-    pagination_keyboard,
+    resume_list_keyboard,
     resume_menu_keyboard,
 )
 from app.Domains.Resume.service import resume_service
@@ -26,7 +26,7 @@ async def resume_list(
     Show user's resumes.
     """
 
-    token = await token_storage.get(callback.from_user.id)
+    token = token_storage.get_token(callback.from_user.id)
 
     if not token:
 
@@ -44,10 +44,10 @@ async def resume_list(
         page=page,
     )
 
-    resumes = response["data"]
-
-    current_page = response["current_page"]
-    last_page = response["last_page"]
+    resumes, current_page, last_page = _normalize_resume_response(
+        response=response,
+        requested_page=page,
+    )
 
     if not resumes:
 
@@ -75,7 +75,8 @@ async def resume_list(
 
     await callback.message.edit_text(
         text=text,
-        reply_markup=pagination_keyboard(
+        reply_markup=resume_list_keyboard(
+            resumes=resumes,
             page=current_page,
             has_prev=current_page > 1,
             has_next=current_page < last_page,
@@ -84,3 +85,29 @@ async def resume_list(
     )
 
     await callback.answer()
+
+
+def _normalize_resume_response(
+    response,
+    requested_page: int,
+) -> tuple[list[dict], int, int]:
+    """Support paginated and plain-list API responses."""
+
+    if isinstance(response, list):
+        return response, 1, 1
+
+    if not isinstance(response, dict):
+        return [], requested_page, requested_page
+
+    data = response.get("data", response.get("resumes", []))
+
+    if isinstance(data, dict):
+        data = data.get("data", [])
+
+    if not isinstance(data, list):
+        data = []
+
+    current_page = response.get("current_page", requested_page)
+    last_page = response.get("last_page", current_page)
+
+    return data, int(current_page), int(last_page)

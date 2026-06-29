@@ -7,21 +7,30 @@ from app.Domains.Resume.keyboards import (
 from app.Domains.Resume.service import (
     resume_service,
 )
+from app.Shared.callbacks import ResumeCallback
+from app.Shared.enums import ResumeAction
 
 router = Router(name="resume.delete")
 
 
 @router.callback_query(
-    F.data.startswith("resume:delete:")
+    ResumeCallback.filter(
+        F.action == ResumeAction.DELETE,
+    )
 )
 async def delete_resume(
     callback: CallbackQuery,
+    callback_data: ResumeCallback,
 ):
     """
     Ask confirmation before deleting resume.
     """
 
-    resume_id = callback.data.split(":")[2]
+    resume_id = callback_data.resume_id
+
+    if not resume_id:
+        await callback.answer("Resume id topilmadi.", show_alert=True)
+        return
 
     await callback.message.edit_text(
         text=(
@@ -37,16 +46,23 @@ async def delete_resume(
 
 
 @router.callback_query(
-    F.data.startswith("resume:confirm_delete:")
+    ResumeCallback.filter(
+        F.action == ResumeAction.CONFIRM_DELETE,
+    )
 )
 async def confirm_delete(
     callback: CallbackQuery,
+    callback_data: ResumeCallback,
 ):
     """
     Delete selected resume.
     """
 
-    resume_id = callback.data.split(":")[2]
+    resume_id = callback_data.resume_id
+
+    if not resume_id:
+        await callback.answer("Resume id topilmadi.", show_alert=True)
+        return
 
     await resume_service.delete_resume(
         telegram_id=callback.from_user.id,

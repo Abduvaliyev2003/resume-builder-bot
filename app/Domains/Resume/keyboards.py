@@ -156,6 +156,65 @@ def pagination_keyboard(
     return builder.as_markup()
 
 
+def resume_list_keyboard(
+    resumes: list[dict],
+    page: int,
+    has_prev: bool,
+    has_next: bool,
+) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+
+    for resume in resumes:
+        resume_id = str(resume.get("id", ""))
+
+        if not resume_id:
+            continue
+
+        builder.button(
+            text=f"📄 {resume.get('title', 'Untitled')}",
+            callback_data=ResumeCallback(
+                action=ResumeAction.VIEW,
+                resume_id=resume_id,
+            ),
+        )
+
+    if has_prev:
+        builder.button(
+            text="⬅️ Previous",
+            callback_data=ResumeCallback(
+                action=ResumeAction.LIST,
+                page=page - 1,
+            ),
+        )
+
+    if has_next:
+        builder.button(
+            text="Next ➡️",
+            callback_data=ResumeCallback(
+                action=ResumeAction.LIST,
+                page=page + 1,
+            ),
+        )
+
+    builder.button(
+        text="➕ Create Resume",
+        callback_data=ResumeCallback(
+            action=ResumeAction.CREATE,
+        ),
+    )
+
+    builder.button(
+        text="🏠 Menu",
+        callback_data=ResumeCallback(
+            action=ResumeAction.MENU,
+        ),
+    )
+
+    builder.adjust(1)
+
+    return builder.as_markup()
+
+
 def preview_keyboard() -> InlineKeyboardMarkup:
 
     builder = InlineKeyboardBuilder()
@@ -203,7 +262,10 @@ def export_keyboard(
 
     builder.button(
         text="⬅️ Back",
-        callback_data=f"resume:view:{resume_id}",
+        callback_data=ResumeCallback(
+            action=ResumeAction.VIEW,
+            resume_id=resume_id,
+        ),
     )
 
     builder.adjust(2, 1)

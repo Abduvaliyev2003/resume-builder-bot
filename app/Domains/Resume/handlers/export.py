@@ -3,17 +3,26 @@ from aiogram.types import CallbackQuery
 
 from app.Domains.Resume.service import resume_service
 from app.Domains.Resume.keyboards import export_keyboard
+from app.Shared.callbacks import ResumeCallback
+from app.Shared.enums import ResumeAction
 
 router = Router(name="resume.export")
 
 @router.callback_query(
-    F.data.startswith("resume:export:")
+    ResumeCallback.filter(
+        F.action == ResumeAction.EXPORT,
+    )
 )
 async def export_menu(
     callback: CallbackQuery,
+    callback_data: ResumeCallback,
 ):
 
-    resume_id = callback.data.split(":")[2]
+    resume_id = callback_data.resume_id
+
+    if not resume_id:
+        await callback.answer("Resume id topilmadi.", show_alert=True)
+        return
 
     await callback.message.edit_text(
 
@@ -41,7 +50,7 @@ async def export_pdf(
 
         resume_id=resume_id,
 
-        export_format="pdf",
+        file_type="pdf",
 
     )
 
@@ -66,7 +75,7 @@ async def export_docx(
 
         resume_id=resume_id,
 
-        export_format="docx",
+        file_type="docx",
 
     )
 
