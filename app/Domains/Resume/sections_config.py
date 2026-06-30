@@ -1,45 +1,173 @@
 from app.Shared.enums import SectionType
 
+# ==========================================================
+# SECTION QUESTIONS
+# ==========================================================
 
 SECTION_FIELDS: dict[SectionType, list[tuple[str, str]]] = {
-    SectionType.SUMMARY: [
-        ("text", "✍️ Summary matnini kiriting:"),
+    SectionType.CONTACT: [
+        ("name", "👤 To'liq ismingiz?"),
+        ("title", "💼 Kasbingiz yoki Professional Title?"),
+        ("email", "📧 Email manzilingiz?"),
+        ("phone_country", "🌍 Telefon kodi? (Masalan: +998)"),
+        ("phone", "📱 Telefon raqamingiz?"),
+        ("address", "📍 Manzilingiz?"),
     ],
+
+    SectionType.SUMMARY: [
+        ("text", "✍️ O'zingiz haqingizda qisqacha yozing:"),
+    ],
+
     SectionType.EXPERIENCE: [
         ("company", "🏢 Kompaniya nomi?"),
-        ("position", "💼 Lavozim?"),
-        ("start_date", "📅 Boshlanish sanasi? (masalan: 2021)"),
-        ("end_date", "📅 Tugash sanasi? (hozir ishlayotgan bo'lsangiz 'Present' deb yozing)"),
+        ("role", "💼 Lavozimingiz?"),
+        ("duration", "📅 Ish davri? (Masalan: Jan 2023 - Present)"),
         ("description", "📝 Qisqacha tavsif?"),
     ],
+
     SectionType.EDUCATION: [
-        ("institution", "🎓 Ta'lim muassasasi nomi?"),
-        ("degree", "📚 Daraja / yo'nalish?"),
-        ("start_date", "📅 Boshlanish yili?"),
-        ("end_date", "📅 Tugash yili?"),
+        ("school", "🏫 Universitet yoki maktab nomi?"),
+        ("degree", "🎓 Yo'nalish yoki Degree?"),
+        ("year", "📅 Bitirgan yil?"),
     ],
-    SectionType.SKILLS: [
-        ("skills_list", "🛠 Skill'laringizni vergul bilan ajratib yozing (masalan: Python, SQL, Docker)"),
+
+    SectionType.CERTIFICATIONS: [
+        ("name", "📜 Sertifikat nomi?"),
+        ("organization", "🏢 Sertifikatni bergan tashkilot?"),
+        ("issue_date", "📅 Berilgan sana?"),
+        ("credential_id", "🆔 Credential ID (bo'lmasa '-' yozing)"),
+    ],
+
+    SectionType.LANGUAGES: [
+        ("language", "🌐 Til nomi?"),
+        ("level", "📊 Darajasi? (A1, B2, C1, Native...)"),
     ],
 }
 
-SECTION_TITLES: dict[SectionType, str] = {
+# ==========================================================
+# SINGLE SECTION
+# ==========================================================
+
+SINGLE_SECTIONS = {
+    SectionType.CONTACT,
+    SectionType.SUMMARY,
+}
+
+# ==========================================================
+# SKILLS
+# ==========================================================
+
+SKILLS_PROMPT = (
+    "🛠 Skilllaringizni vergul bilan yozing.\n\n"
+    "Masalan:\n"
+    "PHP, Laravel, PostgreSQL, Docker"
+)
+
+# ==========================================================
+# TITLES
+# ==========================================================
+
+SECTION_TITLES = {
+    SectionType.CONTACT: "👤 Contact",
     SectionType.SUMMARY: "📄 Summary",
+    SectionType.SKILLS: "🛠 Skills",
     SectionType.EXPERIENCE: "💼 Experience",
     SectionType.EDUCATION: "🎓 Education",
-    SectionType.SKILLS: "🛠 Skills",
+    SectionType.CERTIFICATIONS: "📜 Certifications",
+    SectionType.LANGUAGES: "🌐 Languages",
 }
 
+# ==========================================================
+# ORDER
+# ==========================================================
 
-def build_section_content(section_type: SectionType, answers: dict[str, str]) -> list[dict]:
-    """Convert collected field answers into the API's content array format."""
+SECTION_ORDER = [
+    SectionType.CONTACT,
+    SectionType.SUMMARY,
+    SectionType.SKILLS,
+    SectionType.EXPERIENCE,
+    SectionType.EDUCATION,
+    SectionType.CERTIFICATIONS,
+    SectionType.LANGUAGES,
+]
+
+# ==========================================================
+# DEFAULT CONTENT
+# ==========================================================
+
+
+def default_content(section_type: SectionType) -> dict:
+    """
+    Website bilan bir xil default structure.
+    """
+
+    if section_type == SectionType.CONTACT:
+        return {
+            "name": "",
+            "title": "",
+            "email": "",
+            "phone": "",
+            "phone_country": "+998",
+            "address": "",
+            "photo": None,
+        }
 
     if section_type == SectionType.SUMMARY:
-        return [{"text": answers["text"]}]
+        return {
+            "text": "",
+        }
 
     if section_type == SectionType.SKILLS:
-        skills = [s.strip() for s in answers["skills_list"].split(",") if s.strip()]
-        return [{"name": skill} for skill in skills]
+        return {
+            "list": [],
+        }
 
-    
-    return [dict(answers)]
+    if section_type == SectionType.EXPERIENCE:
+        return {
+            "items": [],
+        }
+
+    if section_type == SectionType.EDUCATION:
+        return {
+            "items": [],
+        }
+
+    if section_type == SectionType.CERTIFICATIONS:
+        return {
+            "items": [],
+        }
+
+    if section_type == SectionType.LANGUAGES:
+        return {
+            "items": [],
+        }
+
+    return {}
+
+# ==========================================================
+# BUILD PAYLOAD
+# ==========================================================
+
+
+def build_sections_payload(
+    filled: dict[SectionType, dict],
+) -> list[dict]:
+    """
+    Website yuboradigan payload bilan bir xil JSON hosil qiladi.
+    """
+
+    payload: list[dict] = []
+
+    for index, section_type in enumerate(SECTION_ORDER, start=1):
+        payload.append(
+            {
+                "section_type": section_type.value,
+                "content": filled.get(
+                    section_type,
+                    default_content(section_type),
+                ),
+                "order_index": index,
+            }
+        )
+
+    return payload

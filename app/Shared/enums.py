@@ -19,15 +19,20 @@ class ResumeAction(StrEnum):
 
 
 class SectionType(StrEnum):
+    CONTACT = "contact"
     SUMMARY = "summary"
+    SKILLS = "skills"
     EXPERIENCE = "experience"
     EDUCATION = "education"
-    SKILLS = "skills"
+    CERTIFICATIONS = "certifications"
+    LANGUAGES = "languages"
 
 
 class SectionAction(StrEnum):
     CHOOSE = "choose"
     FINISH = "finish"
+    ADD_MORE = "add_more"
+    STOP_ITEMS = "stop_items"
 
 
 class AuthAction(StrEnum):

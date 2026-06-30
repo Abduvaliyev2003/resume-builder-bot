@@ -3,6 +3,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.Shared.callbacks import ResumeCallback, SectionCallback
 from app.Shared.enums import ResumeAction, SectionAction, SectionType
+from app.Domains.Resume.sections_config import SECTION_TITLES
 
 
 def resume_menu_keyboard() -> InlineKeyboardMarkup:
@@ -279,21 +280,15 @@ def export_keyboard(
 
     return builder.as_markup()
 
-def section_menu_keyboard() -> InlineKeyboardMarkup:
-    """Section turini tanlash yoki tugatish menyusi."""
+def section_menu_keyboard(filled_types: set[SectionType]) -> InlineKeyboardMarkup:
+    """Section turini tanlash menyusi. To'ldirilganlar belgisi bilan."""
 
     builder = InlineKeyboardBuilder()
 
-    labels = {
-        SectionType.SUMMARY: "📄 Summary",
-        SectionType.EXPERIENCE: "💼 Experience",
-        SectionType.EDUCATION: "🎓 Education",
-        SectionType.SKILLS: "🛠 Skills",
-    }
-
-    for section_type, label in labels.items():
+    for section_type, label in SECTION_TITLES.items():
+        mark = "✅ " if section_type in filled_types else ""
         builder.button(
-            text=label,
+            text=f"{mark}{label}",
             callback_data=SectionCallback(
                 action=SectionAction.CHOOSE,
                 section_type=section_type,
@@ -301,12 +296,38 @@ def section_menu_keyboard() -> InlineKeyboardMarkup:
         )
 
     builder.button(
-        text="✅ Tugatish va saqlash",
+        text="🏁 Yakunlash va saqlash",
         callback_data=SectionCallback(
             action=SectionAction.FINISH,
         ),
     )
 
-    builder.adjust(2, 2, 1)
+    builder.adjust(2, 2, 2, 1)
+
+    return builder.as_markup()
+
+
+def add_more_item_keyboard(section_type: SectionType) -> InlineKeyboardMarkup:
+    """Experience/Education kabi 'items' ro'yxati uchun yana qo'shish/tugatish."""
+
+    builder = InlineKeyboardBuilder()
+
+    builder.button(
+        text="➕ Yana qo'shish",
+        callback_data=SectionCallback(
+            action=SectionAction.ADD_MORE,
+            section_type=section_type,
+        ),
+    )
+
+    builder.button(
+        text="⬅️ Bo'limlar menyusiga qaytish",
+        callback_data=SectionCallback(
+            action=SectionAction.STOP_ITEMS,
+            section_type=section_type,
+        ),
+    )
+
+    builder.adjust(1)
 
     return builder.as_markup()
