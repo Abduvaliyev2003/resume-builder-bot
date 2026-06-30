@@ -1,8 +1,8 @@
 from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from app.Shared.callbacks import ResumeCallback
-from app.Shared.enums import ResumeAction
+from app.Shared.callbacks import ResumeCallback, SectionCallback
+from app.Shared.enums import ResumeAction, SectionAction, SectionType
 
 
 def resume_menu_keyboard() -> InlineKeyboardMarkup:
@@ -111,12 +111,19 @@ def template_keyboard(
     builder = InlineKeyboardBuilder()
 
     for template in templates:
+        raw_id = template.get("id")
+
+        # ba'zan id nested dict bo'lib kelishi mumkin — shuni handle qilamiz
+        if isinstance(raw_id, dict):
+            raw_id = raw_id.get("id")
+
+        template_id = str(raw_id)
 
         builder.button(
-            text=template["name"],
+            text=template.get("name", "Template"),
             callback_data=ResumeCallback(
                 action=ResumeAction.TEMPLATE,
-                template_id=template["id"],
+                template_id=template_id,
             ),
         )
 
@@ -269,5 +276,37 @@ def export_keyboard(
     )
 
     builder.adjust(2, 1)
+
+    return builder.as_markup()
+
+def section_menu_keyboard() -> InlineKeyboardMarkup:
+    """Section turini tanlash yoki tugatish menyusi."""
+
+    builder = InlineKeyboardBuilder()
+
+    labels = {
+        SectionType.SUMMARY: "📄 Summary",
+        SectionType.EXPERIENCE: "💼 Experience",
+        SectionType.EDUCATION: "🎓 Education",
+        SectionType.SKILLS: "🛠 Skills",
+    }
+
+    for section_type, label in labels.items():
+        builder.button(
+            text=label,
+            callback_data=SectionCallback(
+                action=SectionAction.CHOOSE,
+                section_type=section_type,
+            ),
+        )
+
+    builder.button(
+        text="✅ Tugatish va saqlash",
+        callback_data=SectionCallback(
+            action=SectionAction.FINISH,
+        ),
+    )
+
+    builder.adjust(2, 2, 1)
 
     return builder.as_markup()

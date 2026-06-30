@@ -1,4 +1,3 @@
-import json
 from typing import Any
 
 from aiogram import Router, F
@@ -13,14 +12,21 @@ from app.Domains.Resume.service import resume_service
 from app.Domains.Template.service import template_service
 from app.Domains.Resume.keyboards import (
     template_keyboard,
+    section_menu_keyboard,
+)
+from app.Domains.Resume.sections_config import (
+    SECTION_FIELDS,
+    SECTION_TITLES,
+    build_section_content,
 )
 from app.Shared.api import APIError
-from app.Shared.callbacks import ResumeCallback
-from app.Shared.enums import ResumeAction
+from app.Shared.callbacks import ResumeCallback, SectionCallback
+from app.Shared.enums import ResumeAction, SectionAction, SectionType
 
 router = Router(
     name="resume.create",
 )
+
 
 @router.callback_query(
     ResumeCallback.filter(
@@ -44,6 +50,7 @@ async def create_resume(
     )
 
     await callback.answer()
+
 
 @router.message(
     ResumeState.title,
@@ -72,6 +79,7 @@ async def title(
         ),
     )
 
+
 @router.callback_query(
     ResumeState.template,
     ResumeCallback.filter(
@@ -88,82 +96,155 @@ async def choose_template(
 
     await state.update_data(
         template_id=template_id,
+        sections=[],
     )
 
     await state.set_state(
-        ResumeState.sections,
+        ResumeState.section_menu,
     )
 
     await callback.message.answer(
-        (
-            "🤖 Endi resume sections JSON array yuboring.\n\n"
-            "Masalan:\n"
-            "[{\"section_type\":\"summary\",\"content\":[{\"text\":\"...\"}],\"order_index\":1}]"
-        )
+        "🧩 Resume'ga qaysi bo'limni qo'shmoqchisiz?",
+        reply_markup=section_menu_keyboard(),
+    )
+
+    await callback.answer()
+
+
+@router.callback_query(
+    ResumeState.section_menu,
+    SectionCallback.filter(
+        F.action == SectionAction.CHOOSE,
+    ),
+)
+async def choose_section_type(
+    callback: CallbackQuery,
+    state: FSMContext,
+    callback_data: SectionCallback,
+):
+
+    section_type = callback_data.section_type
+
+    await state.update_data(
+        current_section_type=section_type.value,
+        current_field_index=0,
+        current_answers={},
+    )
+
+    await state.set_state(
+        ResumeState.section_field,
+    )
+
+    first_field_name, first_question = SECTION_FIELDS[section_type][0]
+
+    await callback.message.answer(
+        f"{SECTION_TITLES[section_type]}\n\n{first_question}"
     )
 
     await callback.answer()
 
 
 @router.message(
-    ResumeState.sections,
+    ResumeState.section_field,
 )
-async def sections(
+async def collect_section_field(
     message: Message,
     state: FSMContext,
 ):
-    """Create a resume from the collected title, template and sections."""
-
-    try:
-        parsed_sections = _parse_sections(message.text or "")
-    except ValueError as exc:
-        await message.answer(f"❌ Sections xato: {exc}")
-        return
 
     data = await state.get_data()
 
+    section_type = SectionType(data["current_section_type"])
+    field_index = data["current_field_index"]
+    answers: dict[str, Any] = data["current_answers"]
+
+    fields = SECTION_FIELDS[section_type]
+    field_name, _ = fields[field_index]
+
+    answers[field_name] = message.text
+    field_index += 1
+
+    if field_index < len(fields):
+        # Keyingi savolni beramiz
+        await state.update_data(
+            current_field_index=field_index,
+            current_answers=answers,
+        )
+
+        _, next_question = fields[field_index]
+
+        await message.answer(next_question)
+        return
+
+    # Barcha fieldlar to'ldirildi — sectionni yakunlaymiz
+    sections: list[dict] = data.get("sections", [])
+
+    content = build_section_content(section_type, answers)
+
+    sections.append(
+        {
+            "section_type": section_type.value,
+            "content": content,
+            "order_index": len(sections) + 1,
+        }
+    )
+
+    await state.update_data(
+        sections=sections,
+        current_section_type=None,
+        current_field_index=0,
+        current_answers={},
+    )
+
+    await state.set_state(
+        ResumeState.section_menu,
+    )
+
+    await message.answer(
+        f"✅ {SECTION_TITLES[section_type]} qo'shildi.\n\n"
+        "Yana bo'lim qo'shasizmi yoki tugatasizmi?",
+        reply_markup=section_menu_keyboard(),
+    )
+
+
+@router.callback_query(
+    ResumeState.section_menu,
+    SectionCallback.filter(
+        F.action == SectionAction.FINISH,
+    ),
+)
+async def finish_sections(
+    callback: CallbackQuery,
+    state: FSMContext,
+):
+
+    data = await state.get_data()
+
+    sections = data.get("sections", [])
+
+    if not sections:
+        await callback.answer(
+            "⚠️ Kamida 1 ta bo'lim qo'shishingiz kerak.",
+            show_alert=True,
+        )
+        return
+
     try:
         await resume_service.create_resume(
-            telegram_id=message.from_user.id,
+            telegram_id=callback.from_user.id,
             title=data["title"],
             template_id=data.get("template_id"),
-            sections=parsed_sections,
+            sections=sections,
         )
     except APIError as exc:
-        await message.answer(f"❌ Resume yaratilmadi: {exc}")
+        await callback.message.answer(f"❌ Resume yaratilmadi: {exc}")
+        await callback.answer()
         return
 
     await state.clear()
 
-    await message.answer(
+    await callback.message.answer(
         "✅ Resume yaratildi."
     )
 
-
-def _parse_sections(raw_text: str) -> list[dict[str, Any]]:
-    """Parse and validate API sections payload from Telegram text."""
-
-    try:
-        sections = json.loads(raw_text)
-    except json.JSONDecodeError as exc:
-        raise ValueError("JSON array yuboring.") from exc
-
-    if not isinstance(sections, list):
-        raise ValueError("sections array bo'lishi kerak.")
-
-    for index, section in enumerate(sections, start=1):
-        if not isinstance(section, dict):
-            raise ValueError(f"{index}-section object bo'lishi kerak.")
-
-        if not isinstance(section.get("section_type"), str) or not section["section_type"].strip():
-            raise ValueError(f"{index}-section uchun section_type majburiy.")
-
-        if "content" not in section or not isinstance(section["content"], list):
-            raise ValueError(f"{index}-section uchun content array majburiy.")
-
-        order_index = section.get("order_index")
-
-        if order_index is not None and not isinstance(order_index, int):
-            raise ValueError(f"{index}-section uchun order_index integer bo'lishi kerak.")
-
-    return sections
+    await callback.answer()

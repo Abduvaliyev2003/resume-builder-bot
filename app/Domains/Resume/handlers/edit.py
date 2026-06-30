@@ -2,7 +2,7 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from app.Domains.Resume.handlers.create import _parse_sections
+from app.Domains.Resume.utils import parse_sections as _parse_sections
 from app.Domains.Resume.service import resume_service
 from app.Domains.Resume.states import ResumeState
 from app.Shared.api import APIError

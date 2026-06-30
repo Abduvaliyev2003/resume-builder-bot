@@ -8,20 +8,25 @@ class TemplateService:
     """Template API service for Laravel template endpoints."""
 
     async def get_templates(
-        self,
-        telegram_id: int | None = None,
+       self,
+       telegram_id: int | None = None,
     ) -> list[dict[str, Any]]:
-        """Return available templates."""
-
+    
         token = None
-
         if telegram_id is not None:
-            token = token_storage.get_token(telegram_id)
+           token = token_storage.get_token(telegram_id)
 
-        return await api.get(
-            "/templates",
-            token=token,
+        response = await api.get(
+           "/templates",
+           token=token,
         )
+
+        if isinstance(response, dict):
+            templates = response.get("data") or response.get("templates") or []
+        else:
+            templates = response
+
+        return templates
 
 
     async def get_template(

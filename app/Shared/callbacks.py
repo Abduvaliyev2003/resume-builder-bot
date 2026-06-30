@@ -1,11 +1,18 @@
 from aiogram.filters.callback_data import CallbackData
-from app.Shared.enums import ResumeAction, AuthAction
+
+from app.Shared.enums import ResumeAction, AuthAction, SectionAction, SectionType
+
 
 class ResumeCallback(CallbackData, prefix="resume"):
     action: ResumeAction
     resume_id: str | None = None
     template_id: str | None = None
     page: int | None = None
+
+
+class SectionCallback(CallbackData, prefix="section"):
+    action: SectionAction
+    section_type: SectionType | None = None
 
 
 class TemplateCallback(CallbackData, prefix="template"):
